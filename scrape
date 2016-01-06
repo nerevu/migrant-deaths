@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
-# Script to scrape casualty table from UN website
-# and place in google spreadsheet
+# Script to scrape casualty table from IOM website
+
+# usage: ./scrape
 
 import sys
 import requests
