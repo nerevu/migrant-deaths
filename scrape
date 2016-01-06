@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+
+# -*- coding: utf-8 -*-
+# Script to scrape casualty table from UN website
+# and place in google spreadsheet
+
+import sys
+import requests
+import unicodecsv as csv
+import datetime as dt
+
+from os import path as p
+from BeautifulSoup import BeautifulSoup
+
+ENCODING = 'utf-8'
+DIR = p.dirname(__file__)
+
+def get_metadata(f, soup):
+    text_cls = (
+        'field field-name-body field-type-text-with-summary field-label-hidden')
+
+    elements = soup.find('div', {'class': text_cls}).findAll('p')
+    astrix = [e for e in elements if '*' in e.text]
+    caveats, comments = astrix[1].text.lstrip('*').split('Note:')
+
+    rows = (
+        ['source', url],
+        ['methodology', '\n'.join(p.text for p in elements[:4])],
+        ['updated', astrix[2].text[17:].rstrip('.')],
+        ['location', 'Worldwide'],
+        ['caveats', caveats],
+        ['comments', comments],
+        ['utc_created', dt.datetime.utcnow()])
+
+    writer = csv.writer(f, lineterminator='\n')
+    writer.writerows(rows)
+
+def get_data(f, soup):
+    table = soup.find('table')
+    first_row = table.findNext('tr')
+    headers = [th.findChildren(text=True)[0] for th in first_row.findAll('th')]
+
+    writer = csv.writer(f, lineterminator='\n')
+    writer.writerow(headers)
+
+    for tr in table.findAll('tr'):
+        tds = tr.findAll('td')
+        row = [td.findChildren(text=True)[0].rstrip('*') for td in tds]
+        writer.writerow(row)
+
+if __name__ == '__main__':
+    url = 'http://missingmigrants.iom.int/en/latest-global-figures'
+    r = requests.get(url)
+    soup = BeautifulSoup(r.text)
+
+    with open(p.join(DIR, 'data.csv'), 'wb+') as data_f:
+        get_data(data_f, soup)
+
+    with open(p.join(DIR, 'metadata.csv'), 'wb+') as data_f:
+        get_metadata(data_f, soup)
+
