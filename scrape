@@ -16,6 +16,9 @@ from BeautifulSoup import BeautifulSoup
 ENCODING = 'utf-8'
 DIR = p.dirname(__file__)
 
+def clean_row(row):
+    return [r.rstrip('*').lstrip(u'\xa0 \xa0').lstrip(u'\xa0') for r in row]
+
 def get_metadata(f, soup):
     text_cls = (
         'field field-name-body field-type-text-with-summary field-label-hidden')
@@ -42,12 +45,14 @@ def get_data(f, soup):
     headers = [th.findChildren(text=True)[0] for th in first_row.findAll('th')]
 
     writer = csv.writer(f, lineterminator='\n')
-    writer.writerow(headers)
+    writer.writerow(clean_row(headers))
 
     for tr in table.findAll('tr'):
         tds = tr.findAll('td')
-        row = [td.findChildren(text=True)[0].rstrip('*') for td in tds]
-        writer.writerow(row)
+        row = [td.findChildren(text=True)[0] for td in tds]
+
+        if row:
+            writer.writerow(clean_row(row))
 
 if __name__ == '__main__':
     url = 'http://missingmigrants.iom.int/en/latest-global-figures'
